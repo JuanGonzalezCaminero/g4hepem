@@ -29,7 +29,7 @@
 ##   =  'G4Em'           : the G4 EM physics c.t.r. that corresponds to G4HepEm
 ##   = 'emstandard_opt0' : the original, G4 EM-Opt0 physics c.t.r.
 ## -----------------------------------------------------------------------------
-/testem/phys/addPhysics   HepEm
+/testem/phys/addPhysics   HepEmTracking
 ##/testem/phys/addPhysics   G4Em
 ##
 ## -----------------------------------------------------------------------------

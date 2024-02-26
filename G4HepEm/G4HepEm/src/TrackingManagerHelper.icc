@@ -57,6 +57,8 @@
 #include "G4TransportationManager.hh"
 #include "G4VPhysicalVolume.hh"
 
+#include "G4Timer.hh"
+
 template <typename PhysicsImpl, typename NavigationImpl>
 void TrackingManagerHelper::TrackParticle(G4Track* aTrack, G4Step* aStep,
                                           PhysicsImpl& physics,
@@ -109,6 +111,10 @@ void TrackingManagerHelper::TrackParticle(G4Track* aTrack, G4Step* aStep,
   step.InitializeStep(aTrack);
   aTrack->SetStep(&step);
 
+  G4Timer aTimer;
+  double total{0};
+  double transportation{0};
+
   // Start of tracking: Inform user and processes.
   if(userTrackingAction)
   {
@@ -119,6 +125,8 @@ void TrackingManagerHelper::TrackParticle(G4Track* aTrack, G4Step* aStep,
 
   while(aTrack->GetTrackStatus() == fAlive)
   {
+    aTimer.Start();
+
     // Beginning of this step: Prepare data structures.
     aTrack->IncrementCurrentStepNumber();
 
@@ -132,7 +140,16 @@ void TrackingManagerHelper::TrackParticle(G4Track* aTrack, G4Step* aStep,
 
     // Query step lengths from pyhsics and geometry, decide on limit.
     G4double physicalStep = physics.GetPhysicalInteractionLength(*aTrack);
+
+    aTimer.Stop();
+    total += aTimer.GetRealElapsed();
+    aTimer.Start();
+
     G4double geometryStep = navigation.MakeStep(*aTrack, step, physicalStep);
+
+    aTimer.Stop();
+    transportation += aTimer.GetRealElapsed();
+    aTimer.Start();
 
     bool geometryLimitedStep = geometryStep < physicalStep;
     G4double finalStep = geometryLimitedStep ? geometryStep : physicalStep;
@@ -157,7 +174,15 @@ void TrackingManagerHelper::TrackParticle(G4Track* aTrack, G4Step* aStep,
       }
     }
 
+    aTimer.Stop();
+    total += aTimer.GetRealElapsed();
+    aTimer.Start();
+
     navigation.FinishStep(*aTrack, step);
+
+    aTimer.Stop();
+    transportation += aTimer.GetRealElapsed();
+    aTimer.Start();
 
     // Check if the track left the world.
     if(aTrack->GetNextVolume() == nullptr)
@@ -196,7 +221,13 @@ void TrackingManagerHelper::TrackParticle(G4Track* aTrack, G4Step* aStep,
     {
       regionalAction->UserSteppingAction(&step);
     }
+
+    aTimer.Stop();
+    total += aTimer.GetRealElapsed();
   }
+
+  //G4cout << "Total: " << total << ", Transportation: " << transportation << " ( " << transportation/total*100 << "% )" << G4endl;
+  printf("%lf\n", transportation/total*100);
 
   if(aTrack->GetTrackStatus() == fStopButAlive &&
      aTrack->GetNextVolume() != nullptr)
@@ -241,6 +272,7 @@ void TrackingManagerHelper::TrackParticle(G4Track* aTrack, G4Step* aStep,
   }
 
   evtMgr->StackTracks(&secondaries);
+
 }
 
 TrackingManagerHelper::ChargedNavigation::ChargedNavigation()
